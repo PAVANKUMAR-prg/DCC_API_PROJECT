@@ -9,7 +9,7 @@ import SignIn from './components/SignIn/SignIn';
 import SignUp from './components/SignUp/SignUp';
 import AdminDashboard from './components/Admin/AdminDashboard';
 import PostStory from './components/User/PostStory';
-import Contact from './components/User/Contact';
+import Contact from './components/Contact/Contact';
 import ProtectedRoute from './components/Global/ProtectedRoute';
 import UserDashboard from './components/User/UserDashboard';
 

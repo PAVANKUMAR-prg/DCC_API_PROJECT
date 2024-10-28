@@ -14,7 +14,8 @@ const About = () => {
           {/* Image Section */}
           <div className="md:w-5/12 p-4">
             <img
-              src= "https://images.pexels.com/photos/17950464/pexels-photo-17950464/free-photo-of-person-on-bicycle-on-crosswalk.jpeg" // Update this path
+              //src= "https://images.pexels.com/photos/17950464/pexels-photo-17950464/free-photo-of-person-on-bicycle-on-crosswalk.jpeg" // Update this path
+              src='https://i.pinimg.com/736x/d5/8b/e8/d58be8784e8d9af68a76e135ce7882ae.jpg'
               alt="Cycling Club"
               className="img-responsive rounded-md shadow-md"
             />
