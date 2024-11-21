@@ -1,209 +1,200 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
+import EditUserModal from './EditUserModal';
+import { toast } from 'react-toastify';
+import { API_ENDPOINTS } from '../Global/API_ENDPOINTS';
+import HandleError from '../Global/HandleError';
 
-// Edit User Modal Component
-const EditUserModal = ({ user, onClose, onUpdate }) => {
-    const [updatedUser, setUpdatedUser] = useState(user);
-
-    useEffect(() => {
-        setUpdatedUser(user); // Set the initial state to the passed user prop
-    }, [user]);
-
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setUpdatedUser((prev) => ({ ...prev, [name]: value }));
-    };
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        onUpdate(updatedUser); // Call the update function with updated user data
-        onClose(); // Close the modal after updating
-    };
-
-    return (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-            <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
-                <h2 className="text-xl font-semibold mb-4">Edit User</h2>
-                <form onSubmit={handleSubmit}>
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium mb-1" htmlFor="name">Name</label>
-                        <input 
-                            id="name"
-                            name="name"
-                            value={updatedUser.name}
-                            onChange={handleChange}
-                            placeholder="Name"
-                            className="border px-3 py-2 w-full rounded focus:outline-none focus:ring focus:ring-blue-300"
-                        />
-                    </div>
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium mb-1" htmlFor="email">Email</label>
-                        <input 
-                            id="email"
-                            name="email"
-                            value={updatedUser.email}
-                            onChange={handleChange}
-                            placeholder="Email"
-                            className="border px-3 py-2 w-full rounded focus:outline-none focus:ring focus:ring-blue-300"
-                        />
-                    </div>
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium mb-1" htmlFor="phone">Phone</label>
-                        <input 
-                            id="phone"
-                            name="phone"
-                            value={updatedUser.phone}
-                            onChange={handleChange}
-                            placeholder="Phone"
-                            className="border px-3 py-2 w-full rounded focus:outline-none focus:ring focus:ring-blue-300"
-                        />
-                    </div>
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium mb-1" htmlFor="role">Role</label>
-                        <input 
-                            id="role"
-                            name="role"
-                            value={updatedUser.role}
-                            onChange={handleChange}
-                            placeholder="Role"
-                            className="border px-3 py-2 w-full rounded focus:outline-none focus:ring focus:ring-blue-300"
-                        />
-                    </div>
-                    <div className="flex justify-end">
-                        <button 
-                            type="submit" 
-                            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-200"
-                        >
-                            Update User
-                        </button>
-                        <button 
-                            type="button" 
-                            onClick={onClose} 
-                            className="bg-gray-300 text-gray-700 px-4 py-2 rounded ml-2 hover:bg-gray-400 transition duration-200"
-                        >
-                            Cancel
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
-};
-
-// Main User List Component
-const UserList = () => {
+const UserList = ({ notify }) => {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [selectedUser, setSelectedUser] = useState(null); // To manage the user being edited
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [sortOrder, setSortOrder] = useState("asc");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [showActive, setShowActive] = useState(true); // Toggle between active/inactive users
+    const usersPerPage = 6;
 
-    // Fetch user data from API
     const fetchUsers = async () => {
+        setLoading(true);
         try {
-            const response = await axios.get('https://localhost:7157/api/User/GetAllUsers'); // Adjust the URL if needed
-            setUsers(response.data);
-        } catch (err) {
-            setError(err.response.data.message || 'Error fetching users');
+            // const response = await axios.get('https://localhost:7157/api/User/getAllUsers');
+            const response = await axios.get(API_ENDPOINTS.getAllUsers);
+            setUsers(response.data); // Load all users without filtering
+        } catch (error) {
+            //setError(err.response?.data?.message || 'Error fetching users');
+            setError(HandleError(error,"Error fetching users"));
+            //toast.error(error);
         } finally {
             setLoading(false);
         }
     };
 
-    // Handle user deletion
-    const handleDelete = async (id) => {
-        if (window.confirm("Are you sure you want to delete this user?")) {
-            try {
-                await axios.delete(`https://localhost:7157/api/User/DeleteUsers?id=${id}`);
-                setUsers(users.filter(user => user.id !== id)); // Update the user list
-            } catch (err) {
-                setError(err.response.data.message || 'Error deleting user');
-            }
-        }
-    };
-
-    // Handle user update
-    const handleUpdate = async (user) => {
-        const userData = {
-            id: user.id,
-            userName: "", // Manually set the unnecessary fields
-            normalizedUserName: "", // Example normalization
-            normalizedEmail: "", // Example normalization
-            emailConfirmed: true,
-            passwordHash: "string", // Replace with actual hash if needed
-            securityStamp: "string",
-            concurrencyStamp: "string",
-            phoneNumber: "",
-            phoneNumberConfirmed: true,
-            twoFactorEnabled: false,
-            lockoutEnd: null, // Example: No lockout
-            lockoutEnabled: true,
-            accessFailedCount: 0,
-            name: user.name,
-            phone: user.phone,
-            address: user.address, // Set static or dynamic value if needed
-            email: user.email,
-            password: user.password, // Set default or provided value
-            role: user.role,
-        };
-        console.log(user);
-        
-    
-        try {
-            // Update the URL to include the correct endpoint
-            const response = await axios.put(`https://localhost:7157/api/User/UpdateUsers?id=${user.id}`, userData);
-            console.log('User updated successfully:', response.data);
-            // Refresh user list
-            fetchUsers();
-        } catch (error) {
-            console.error('Error updating user:', error.response ? error.response.data : error.message);
-        }
-    };
-    
-    
-
     useEffect(() => {
         fetchUsers();
     }, []);
 
-    if (loading) return <div>Loading...</div>;
-    if (error) return <div className="error">{error}</div>;
+    const filteredUsers = useMemo(() => {
+        // Filter based on active/inactive status and search term
+        return users
+            .filter(user => user.isActive === showActive)
+            .filter(user => user.name.toLowerCase().includes(searchTerm) || user.email.toLowerCase().includes(searchTerm))
+            .sort((a, b) => sortOrder === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name));
+    }, [users, searchTerm, sortOrder, showActive]);
+
+    const currentUsers = useMemo(() => {
+        const indexOfLastUser = currentPage * usersPerPage;
+        const indexOfFirstUser = indexOfLastUser - usersPerPage;
+        return filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
+    }, [filteredUsers, currentPage]);
+
+    const handleSoftDelete = async (id) => {
+        if (window.confirm("Are you sure you want to deactivate this user?")) {
+            try {
+                // await axios.put(`https://localhost:7157/api/User/deactivateUser/${id}`);
+                await axios.put(API_ENDPOINTS.deactivateUser(id));
+                setUsers(users.map(user => user.id === id ? { ...user, isActive: false } : user));
+                toast.success("User deactivated successfully!");
+            } catch (error) {
+                // const errorMessage = err.response?.data?.message || 'Error deactivating user';
+                // setError(errorMessage);
+                // toast.error(errorMessage);
+
+                setError(HandleError(error,"Error deactivating user"));
+            }
+        }
+    };
+
+    const handleRestoreUser = async (id) => {
+        if (window.confirm("Are you sure you want to activate this user?")){
+            try {
+                // await axios.put(`https://localhost:7157/api/User/restoreUser/${id}`);
+                await axios.put(API_ENDPOINTS.restoreUser(id));
+
+                setUsers(users.map(user => user.id === id ? { ...user, isActive: true } : user));
+                toast.success('User reactivated successfully!');
+            } catch (error) {
+                // const errorMessage = err.response?.data?.message || 'Error reactivating user';
+                // setError(errorMessage);
+                // toast.error(errorMessage);
+                setError(HandleError(error,"Error reactivating user"));
+            }
+        }
+        
+    };
+
+    const handleUpdate = async (formData) => {
+        try {            
+            const id = formData.get("id"); 
+            const response = await axios.put(API_ENDPOINTS.updateUser(id), formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            if (response.status === 200) {
+                toast.success("User updated successfully!");
+                fetchUsers();
+            }
+        } catch (error) {
+            // const errorMessage = error.response?.data?.message || 'Error updating user';
+            // toast.error(errorMessage);
+            setError(HandleError(error,"Error updating user"));
+        }
+    };
+
+    const handleSort = () => {
+        setSortOrder(prevSortOrder => prevSortOrder === "asc" ? "desc" : "asc");
+    };
+
+    const toggleActiveView = () => {
+        setShowActive(prevShowActive => !prevShowActive);
+        setCurrentPage(1); // Reset to first page on toggle
+    };
 
     return (
-        <div className="container mx-auto mt-5">
-            <h1 className="text-2xl font-bold mb-4">User List</h1>
-            <table className="min-w-full border border-gray-200">
-                <thead>
-                    <tr className="bg-gray-100">
-                        <th className="px-4 py-2 border">ID</th>
-                        <th className="px-4 py-2 border">Name</th>
-                        <th className="px-4 py-2 border">Email</th>
-                        <th className="px-4 py-2 border">Phone</th>
-                        <th className="px-4 py-2 border">Role</th>
-                        <th className="px-4 py-2 border">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {users.map((user) => (
-                        <tr key={user.id} className="hover:bg-gray-50">
-                            <td className="px-4 py-2 border">{user.id}</td>
-                            <td className="px-4 py-2 border">{user.name}</td>
-                            <td className="px-4 py-2 border">{user.email}</td>
-                            <td className="px-4 py-2 border">{user.phone}</td>
-                            <td className="px-4 py-2 border">{user.role}</td>
-                            <td className="px-4 py-2 border">
-                                <button 
-                                    className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 mr-2"
-                                    onClick={() => setSelectedUser(user)}>Edit</button>
-                                <button 
-                                    className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
-                                    onClick={() => handleDelete(user.id)}>Delete</button>
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+      <div className="bg-p-4 items-centerp-10 rounded-xl min-h-screen ">
+        {/* </div><div className="flex flex-col items-center p-4 bg-gray-800 text-white min-h-screen"> */}
 
-            {/* Edit User Modal */}
+            <h3 className="text-center text-4xl font-semibold mb-6 text-white">User-List</h3>
+
+            <div className="flex justify-between items-center mb-4">
+                <input
+                    type="text"
+                    placeholder="Search users by name or email"
+                    onChange={(e) => setSearchTerm(e.target.value.toLowerCase())}
+                    className="border  bg-black text-white px-3 py-2 rounded focus:outline-none focus:ring focus:ring-white w-full md:w-1/2 lg:w-1/3"
+                />
+                <button
+                    onClick={handleSort}
+                    className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-orange-300 transition duration-200 ml-2"
+                >
+                    Sort by Name ({sortOrder === "asc" ? "Asc" : "Desc"})
+                </button>
+                <button
+                    onClick={toggleActiveView}
+                    className={`bg-${showActive ? 'gray' : 'orange'}-600 text-white px-4 py-2 rounded hover:bg-${showActive ? 'gray' : 'orange'}-700 transition duration-200 ml-2`}
+                >
+                    Show {showActive ? "Inactive" : "Active"} Users
+                </button>
+            </div>
+
+            {loading ? (
+                <div className="text-white text-center">Loading...</div>
+            ) : (
+                filteredUsers.length === 0 ? (
+                    <div className="text-gray-400 text-center">No users found. Please try a different search term.</div>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {currentUsers.map((user) => (
+                            <div key={user.id} className="bg-black rounded-lg shadow-lg p-5">
+                                <img
+                                    src={user.photoPath ? `https://localhost:7157${user.photoPath}` : 'default-avatar.png'}
+                                    alt="User Profile"
+                                    className="w-full h-40 object-cover rounded mb-4"
+                                />
+                                <h2 className="text-xl font-bold">{user.name}</h2>
+                                <p className="text-gray-300">{user.email}</p>
+                                <p className="text-gray-300">{user.phone}</p>
+                                <div className="flex justify-between mt-4">
+                                    <button
+                                        onClick={() => setSelectedUser(user)}
+                                        className="bg-white text-black px-4 py-2 rounded hover:bg-orange-400 transition duration-200 w-1/2 mr-1"
+                                    >
+                                        Edit
+                                    </button>
+                                    {user.isActive ? (
+                                        <button
+                                            onClick={() => handleSoftDelete(user.id)}
+                                            className="bg-gray-500 text-black px-4 py-2 rounded hover:bg-orange-400 transition duration-200 w-1/2 ml-1"
+                                        >
+                                            Deactivate
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={() => handleRestoreUser(user.id)}
+                                            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-700 transition duration-200 w-1/2 ml-1"
+                                        >
+                                            Restore
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )
+            )}
+
+            <div className="flex justify-center mt-6 space-x-2">
+                {Array.from({ length: Math.ceil(filteredUsers.length / usersPerPage) }, (_, index) => (
+                    <button
+                        key={index}
+                        onClick={() => setCurrentPage(index + 1)}
+                        className={`px-3 py-1 rounded ${currentPage === index + 1 ? 'bg-orange-600 text-white' : 'bg-gray-700 text-gray-300'} hover:bg-orange-700 transition duration-200`}
+                    >
+                        {index + 1}
+                    </button>
+                ))}
+            </div>
+
             {selectedUser && (
                 <EditUserModal 
                     user={selectedUser} 
@@ -216,3 +207,196 @@ const UserList = () => {
 };
 
 export default UserList;
+
+//--------------------------------------------------------------------------------------------------------
+
+
+// import React, { useEffect, useState, useMemo } from 'react';
+// import axios from 'axios';
+// import EditUserModal from './EditUserModal';
+// import { toast } from 'react-toastify';
+// import { API_ENDPOINTS } from '../Global/API_ENDPOINTS';
+// import HandleError from '../Global/HandleError';
+
+// const UserList = () => {
+//     const [users, setUsers] = useState([]);
+//     const [loading, setLoading] = useState(true);
+//     const [error, setError] = useState(null);
+//     const [selectedUser, setSelectedUser] = useState(null);
+//     const [searchTerm, setSearchTerm] = useState('');
+//     const [sortOrder, setSortOrder] = useState('asc');
+//     const [currentPage, setCurrentPage] = useState(1);
+//     const [showActive, setShowActive] = useState(true);
+//     const usersPerPage = 6;
+
+//     const fetchUsers = async () => {
+//         setLoading(true);
+//         try {
+//             const response = await axios.get(API_ENDPOINTS.getAllUsers);
+//             setUsers(response.data);
+//         } catch (error) {
+//             setError(HandleError(error, 'Error fetching users'));
+//         } finally {
+//             setLoading(false);
+//         }
+//     };
+
+//     useEffect(() => {
+//         fetchUsers();
+//     }, []);
+
+//     const filteredUsers = useMemo(() => {
+//         return users
+//             .filter(user => user.isActive === showActive)
+//             .filter(user => user.name.toLowerCase().includes(searchTerm) || user.email.toLowerCase().includes(searchTerm))
+//             .sort((a, b) => sortOrder === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name));
+//     }, [users, searchTerm, sortOrder, showActive]);
+
+//     const currentUsers = useMemo(() => {
+//         const indexOfLastUser = currentPage * usersPerPage;
+//         const indexOfFirstUser = indexOfLastUser - usersPerPage;
+//         return filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
+//     }, [filteredUsers, currentPage]);
+
+//     const handleSoftDelete = async (id) => {
+//         if (window.confirm('Are you sure you want to deactivate this user?')) {
+//             try {
+//                 await axios.put(API_ENDPOINTS.deactivateUser(id));
+//                 setUsers(users.map(user => user.id === id ? { ...user, isActive: false } : user));
+//                 toast.success('User deactivated successfully!');
+//             } catch (error) {
+//                 setError(HandleError(error, 'Error deactivating user'));
+//             }
+//         }
+//     };
+
+//     const handleRestoreUser = async (id) => {
+//         if (window.confirm('Are you sure you want to activate this user?')) {
+//             try {
+//                 await axios.put(API_ENDPOINTS.restoreUser(id));
+//                 setUsers(users.map(user => user.id === id ? { ...user, isActive: true } : user));
+//                 toast.success('User reactivated successfully!');
+//             } catch (error) {
+//                 setError(HandleError(error, 'Error reactivating user'));
+//             }
+//         }
+//     };
+
+//     const handleUpdate = async (formData) => {
+//         try {
+//             const id = formData.get('id');
+//             const response = await axios.put(API_ENDPOINTS.updateUser(id), formData, {
+//                 headers: { 'Content-Type': 'multipart/form-data' }
+//             });
+//             if (response.status === 200) {
+//                 toast.success('User updated successfully!');
+//                 fetchUsers();
+//             }
+//         } catch (error) {
+//             setError(HandleError(error, 'Error updating user'));
+//         }
+//     };
+
+//     const handleSort = () => {
+//         setSortOrder(prevSortOrder => prevSortOrder === 'asc' ? 'desc' : 'asc');
+//     };
+
+//     const toggleActiveView = () => {
+//         setShowActive(prevShowActive => !prevShowActive);
+//         setCurrentPage(1);
+//     };
+
+//     return (
+//         <div className="p-4 min-h-screen bg-gradient-to-r from-orange-700 via-orange-400 to-orange-700 border border-orange-500 text-white rounded-xl">
+//             <h1 className="text-3xl font-bold mb-4">User List</h1>
+//             <div className="flex flex-wrap justify-between items-center mb-4">
+//                 <input
+//                     type="text"
+//                     placeholder="Search users by name or email"
+//                     onChange={(e) => setSearchTerm(e.target.value.toLowerCase())}
+//                     className="border bg-gray-700 text-white px-3 py-2 rounded focus:outline-none focus:ring focus:ring-gray-500 w-full md:w-1/2 lg:w-1/3"
+//                 />
+//                 <button
+//                     onClick={handleSort}
+//                     className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-orange-300 transition duration-200 ml-2"
+//                 >
+//                     Sort by Name ({sortOrder === 'asc' ? 'Asc' : 'Desc'})
+//                 </button>
+//                 <button
+//                     onClick={toggleActiveView}
+//                     className={`bg-${showActive ? 'gray' : 'orange'}-600 text-white px-4 py-2 rounded hover:bg-${showActive ? 'gray' : 'orange'}-700 transition duration-200 ml-2`}
+//                 >
+//                     Show {showActive ? 'Inactive' : 'Active'} Users
+//                 </button>
+//             </div>
+
+//             {loading ? (
+//                 <div className="text-center">Loading...</div>
+//             ) : (
+//                 filteredUsers.length === 0 ? (
+//                     <div className="text-center text-gray-400">No users found. Try a different search term.</div>
+//                 ) : (
+//                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+//                         {currentUsers.map((user) => (
+//                             <div key={user.id} className="bg-gray-900 rounded-lg shadow-lg p-5">
+//                                 <img
+//                                     src={user.photoPath ? `https://localhost:7157${user.photoPath}` : 'default-avatar.png'}
+//                                     alt="User Profile"
+//                                     className="w-full h-40 object-cover rounded mb-4"
+//                                 />
+//                                 <h2 className="text-xl font-bold">{user.name}</h2>
+//                                 <p className="text-gray-400">{user.email}</p>
+//                                 <p className="text-gray-400">{user.phone}</p>
+//                                 <div className="flex justify-between mt-4">
+//                                     <button
+//                                         onClick={() => setSelectedUser(user)}
+//                                         className="bg-orange-400 text-black px-4 py-2 rounded hover:bg-orange-500 transition duration-200 w-1/2 mr-1"
+//                                     >
+//                                         Edit
+//                                     </button>
+//                                     {user.isActive ? (
+//                                         <button
+//                                             onClick={() => handleSoftDelete(user.id)}
+//                                             className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-700 transition duration-200 w-1/2 ml-1"
+//                                         >
+//                                             Deactivate
+//                                         </button>
+//                                     ) : (
+//                                         <button
+//                                             onClick={() => handleRestoreUser(user.id)}
+//                                             className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-700 transition duration-200 w-1/2 ml-1"
+//                                         >
+//                                             Restore
+//                                         </button>
+//                                     )}
+//                                 </div>
+//                             </div>
+//                         ))}
+//                     </div>
+//                 )
+//             )}
+
+//             <div className="flex justify-center mt-6 space-x-2">
+//                 {Array.from({ length: Math.ceil(filteredUsers.length / usersPerPage) }, (_, index) => (
+//                     <button
+//                         key={index}
+//                         onClick={() => setCurrentPage(index + 1)}
+//                         className={`px-3 py-1 rounded ${currentPage === index + 1 ? 'bg-orange-600 text-white' : 'bg-gray-700 text-gray-300'} hover:bg-orange-700 transition duration-200`}
+//                     >
+//                         {index + 1}
+//                     </button>
+//                 ))}
+//             </div>
+
+//             {selectedUser && (
+//                 <EditUserModal
+//                     user={selectedUser}
+//                     onClose={() => setSelectedUser(null)}
+//                     onUpdate={handleUpdate}
+//                 />
+//             )}
+//         </div>
+//     );
+// };
+
+// export default UserList;

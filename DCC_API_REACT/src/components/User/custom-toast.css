@@ -1,0 +1,16 @@
+/* custom-toast.css */
+.Toastify__toast--success {
+    background-color: #5ffe03; /* Orange */
+    color: white;
+  }
+  
+  .Toastify__toast--error {
+    background-color: #d32f2f; /* Red for errors */
+    color: white;
+  }
+  
+  .Toastify__toast--default {
+    background-color: orangered; /* Default background */
+    color: white;
+  }
+  
